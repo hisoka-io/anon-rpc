@@ -53,7 +53,7 @@
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
-    "@anon-rpc/browser-harness": "^0.3.2"
+    "@anon-rpc/browser-harness": "0.3.2"
   },
   "devDependencies": {
     "@noble/hashes": "^1.8.0",

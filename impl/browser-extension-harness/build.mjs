@@ -92,6 +92,25 @@ try {
       "Run `npm run build --workspaces` so its dist/iframe-boot.js exists.",
   );
 }
+// The dependency is pinned EXACTLY, and this is what makes the pin mean
+// something. sandbox.js is copied from whichever browser harness resolves
+// here, while the published `./offscreen` entry imports whichever one the
+// integrator's npm installs — the pinned one. If those were different
+// versions, the package would ship one version's sandbox page paired with
+// another's host half. So the version being copied must be the version
+// declared.
+const bhPkg = JSON.parse(
+  await readFile(resolve(dirname(require.resolve("@anon-rpc/browser-harness/package.json")), "package.json"), "utf8"),
+);
+const declared = JSON.parse(await readFile("package.json", "utf8")).dependencies["@anon-rpc/browser-harness"];
+if (declared !== bhPkg.version) {
+  throw new Error(
+    `@anon-rpc/browser-harness is pinned to "${declared}" but ${bhPkg.version} is what this build ` +
+      "would copy sandbox.js from. Update the pin in package.json to match, so the published " +
+      "package's sandbox page and its offscreen entry come from the same harness.",
+  );
+}
+
 await copyFile(bootSrc, `${staging}/sandbox.js`);
 
 // The two HTML pages.
