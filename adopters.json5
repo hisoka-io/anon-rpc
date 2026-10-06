@@ -28,7 +28,7 @@
       // and expect wallets to write their own values. `exampleConfigNote`
       // renders as a caveat beside it; `url` links the entry's heading.
       exampleConfig: {
-        gateways: ["170.64.236.147:12298:uEiBHwUMNRTetrbqScahm81Di57Xv2OphNrx-CurJGOq3ww"],
+        gateways: ["152.236.3.22:12298:uEiCH0VdbhryzJcMtCfB0vLA4sOvHdQ4hq5w7CopcwU59bQ"],
       },
       exampleConfigNote: "Demonstration gateway only: limited capacity, and it may disappear at any time — run your own for anything real. Browsers cannot open the raw TCP that Tor uses, so gateways act as blind KPS relays into the Tor network.",
     },
