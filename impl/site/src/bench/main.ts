@@ -16,10 +16,12 @@ import { AnonRpcWorker } from "@anon-rpc/browser-harness";
 type Arm = {
   /** Stable id, also the label in the driver's output. */
   id: string;
-  /** IWorkerSpecifier address on mainnet; omitted for the `direct` control. */
+  /** IWorkerSpecifier address; omitted for the `direct` control. */
   specifier?: string;
   /** §7.1 config handed to the worker as-is. */
   config?: unknown;
+  /** RPC for the specifier read, when it is not on the run's chain. */
+  bootstrapRpc?: string;
 };
 
 type BootResult = { id: string; ok: boolean; bootMs: number; error?: string };
@@ -62,7 +64,7 @@ async function boot(arm: Arm, bootstrapRpc: string): Promise<BootResult> {
     // The `direct` control has nothing to boot; report 0 so the shape matches.
     return { id: arm.id, ok: true, bootMs: 0 };
   }
-  const bootstrapCall = jsonRpc(fetch, bootstrapRpc);
+  const bootstrapCall = jsonRpc(fetch, arm.bootstrapRpc ?? bootstrapRpc);
   try {
     const worker = new AnonRpcWorker({
       address: arm.specifier,

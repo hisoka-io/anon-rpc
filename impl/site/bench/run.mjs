@@ -37,7 +37,7 @@
 //
 // Usage:
 //   BENCH_RPC_URL=<url> node bench/run.mjs [--n 50] [--rpc URL] [--out results.json]
-//                      [--summary-md summary.md]
+//                      [--summary-md summary.md] [--extra-arms arms.json]
 
 import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
@@ -72,9 +72,13 @@ const SUMMARY_MD = arg("summary-md", null);
 
 // Every known worker becomes an arm, so a newly published worker is measured
 // without touching this file. `direct` is the control: no harness at all.
+// --extra-arms appends arms ({ id, specifier, config?, bootstrapRpc? }) for a
+// worker not listed there; bootstrapRpc moves only its specifier read.
+const EXTRA_ARMS = arg("extra-arms", null);
 const ARMS = [
   { id: "direct" },
   ...KNOWN_WORKERS.map((w) => ({ id: w.id, specifier: w.specifier, config: w.exampleConfig })),
+  ...(EXTRA_ARMS ? JSON5.parse(readFileSync(EXTRA_ARMS, "utf8")) : []),
 ];
 
 const t0 = performance.now();
@@ -92,6 +96,8 @@ const cleanups = [];
 const cleanup = () => cleanups.splice(0).reverse().forEach((f) => { try { f(); } catch {} });
 process.on("exit", cleanup);
 const fail = (m) => { console.error(`❌ ${m}`); cleanup(); process.exit(1); };
+// Results are keyed by arm id, so a repeated one would merge two arms' samples.
+if (new Set(ARMS.map((a) => a.id)).size !== ARMS.length) fail("duplicate arm id");
 
 /** p-th percentile of a sorted array, nearest-rank. */
 const pct = (sorted, p) =>
@@ -149,7 +155,7 @@ for (const armDef of ARMS) {
     page.evaluate(([arms, rpc]) => window.__bench.boot(arms, rpc), [[armDef], RPC]),
     new Promise((r) => setTimeout(() => r([{ id: armDef.id, ok: false, bootMs: BOOT_TIMEOUT_MS, error: `boot timed out after ${BOOT_TIMEOUT_MS}ms` }]), BOOT_TIMEOUT_MS)),
   ]);
-  boots.push(b);
+  boots.push(armDef.bootstrapRpc ? { ...b, bootstrapHost: new URL(armDef.bootstrapRpc).host } : b);
 }
 
 for (const b of boots) {
@@ -268,7 +274,8 @@ if (SUMMARY_MD) {
     if (!b || id === "direct") return "—";
     // A boot failure is the row's result, so it is stated in the cell rather
     // than relegated to a footnote under the table.
-    return b.ok ? `${b.bootMs.toFixed(0)}ms` : `**did not boot** — ${b.error}`;
+    const via = b.bootstrapHost ? ` via \`${b.bootstrapHost}\`` : "";
+    return b.ok ? `${b.bootMs.toFixed(0)}ms${via}` : `**did not boot** — ${b.error}`;
   };
   const md = [
     `### anon-rpc bench — n=${N} per arm`,
